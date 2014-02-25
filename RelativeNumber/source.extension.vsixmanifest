@@ -4,9 +4,14 @@
     <Identity Id="RelativeNumber.Microsoft.b75ccaea-70c1-475c-9cb7-ddb84ea9d43c" Version="1.0" Language="en-US" Publisher="Brian Schmitt" />
     <DisplayName>RelativeNumber</DisplayName>
     <Description xml:space="preserve">Displays the line number relative to the line with the cursor on it. It allows you to make quick vertical movements. </Description>
+    <MoreInfo>https://github.com/brianschmitt/relativenumber</MoreInfo>
+    <License>LICENSE</License>
+    <Tags>VSVIM VIM VisualStudio</Tags>
   </Metadata>
   <Installation>
-    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="12.0" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[12.0,13.0)" />
+    <InstallationTarget Version="[12.0,13.0)" Id="Microsoft.VisualStudio.Premium" />
+    <InstallationTarget Version="[12.0,13.0)" Id="Microsoft.VisualStudio.Ultimate" />
   </Installation>
   <Dependencies>
     <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="4.5" />
