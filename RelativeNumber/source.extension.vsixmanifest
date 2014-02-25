@@ -6,6 +6,8 @@
     <Description xml:space="preserve">Displays the line number relative to the line with the cursor on it. It allows you to make quick vertical movements. </Description>
     <MoreInfo>https://github.com/brianschmitt/relativenumber</MoreInfo>
     <License>LICENSE</License>
+    <Icon>icon.ico</Icon>
+    <PreviewImage>preview.png</PreviewImage>
     <Tags>VSVIM VIM VisualStudio</Tags>
   </Metadata>
   <Installation>
