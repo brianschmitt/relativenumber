@@ -60,7 +60,7 @@
             {
                 return textView.TextSnapshot.GetLineNumberFromPosition(
                            textView.Caret.Position.BufferPosition.Position
-                        ) + 1;
+                        );
             }
         }
 
@@ -76,7 +76,6 @@
             Children.Clear();
 
             var currentCursorLine = CursorLineIndex;
-            var viewCursorIndex = textView.TextViewLines.GetIndexOfTextLine(textView.Caret.ContainingTextViewLine);
             var viewTotalLines = textView.TextViewLines.Count;
             var viewStartLine = textView.TextViewLines.FirstVisibleLine.Start.GetContainingLine().LineNumber;
             var viewEndLine = textView.TextViewLines.LastVisibleLine.End.GetContainingLine().LineNumber;
@@ -86,20 +85,25 @@
             this.Width = CalculateWidth(string.Format(CultureInfo.CurrentCulture, "{0:X" + numberCharactersLineCount + "}", totalLineCount), fontFamily, fontSize);
             this.Background = backColor;
 
+            var previousLineNumber = -1;
             for (var i = 0; i < viewTotalLines; i++)
             {
                 var width = numberCharactersLineCount;
-                int displayNumber;
-                if (currentCursorLine > viewStartLine && currentCursorLine < viewEndLine)
-                    displayNumber = Math.Abs(viewCursorIndex - i);
-                else
-                    displayNumber = Math.Abs(currentCursorLine - viewStartLine - i);
+                var currentLineNumber = textView.TextSnapshot.GetLineNumberFromPosition(textView.TextViewLines[i].Start);
 
-                if (displayNumber == 0)
+                if (previousLineNumber == currentLineNumber) continue;
+                previousLineNumber = currentLineNumber;
+
+                int displayNumber;
+                if (currentLineNumber == currentCursorLine)
                 {
-                    displayNumber = currentCursorLine;
+                    displayNumber = currentCursorLine + 1;
                     width = numberCharactersLineCount * -1;
                 }
+                else if (currentCursorLine >= viewStartLine && currentCursorLine <= viewEndLine)
+                    displayNumber = Math.Abs(currentLineNumber - currentCursorLine);
+                else
+                    displayNumber = Math.Abs(currentLineNumber - viewStartLine - currentCursorLine);
 
                 var lineNumber = ConstructLineNumber(displayNumber, width, fontFamily, fontSize, foreColor);
                 var top = textView.TextViewLines[i].TextTop - textView.ViewportTop;
