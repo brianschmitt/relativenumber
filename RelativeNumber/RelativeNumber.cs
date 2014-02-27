@@ -119,8 +119,7 @@
                 FontFamily = fontFamily,
                 FontSize = fontSize,
                 Foreground = foreColor,
-                Content = string.Format(CultureInfo.CurrentCulture, "{0," + width + "}", displayNumber),
-                Padding = new Thickness(0, 1, 0, 0)
+                Content = string.Format(CultureInfo.CurrentCulture, "{0," + width + "}", displayNumber)
             };
             return label;
         }
