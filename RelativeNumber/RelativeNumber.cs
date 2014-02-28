@@ -16,14 +16,16 @@
         internal const string MarginName = "RelativeNumber";
         private IWpfTextView textView;
         private IEditorFormatMap formatMap;
+        private IWpfTextViewMargin containerMargin;
         private bool isDisposed;
 
         private int lastCursorLine = -1;
 
-        public RelativeNumber(IWpfTextView textView, IEditorFormatMap formatMap)
+        public RelativeNumber(IWpfTextView textView, IEditorFormatMap formatMap, IWpfTextViewMargin containerMargin)
         {
             this.textView = textView;
             this.formatMap = formatMap;
+            this.containerMargin = containerMargin;
 
             this.ClipToBounds = true;
             TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
@@ -31,8 +33,17 @@
 
             textView.Caret.PositionChanged += OnCaretPositionChanged;
             textView.LayoutChanged += OnLayoutChanged;
+            textView.Options.OptionChanged += OnOptionChanged;
             textView.ViewportHeightChanged += (sender, args) => ApplyNumbers();
             formatMap.FormatMappingChanged += (sender, args) => ApplyNumbers();
+        }
+
+        void OnOptionChanged(object sender, EditorOptionChangedEventArgs e)
+        {
+            if (e.OptionId == "TextViewHost/LineNumberMargin")
+            {
+                ApplyNumbers();
+            }
         }
 
         private void OnCaretPositionChanged(object sender, CaretPositionChangedEventArgs e)
@@ -58,14 +69,16 @@
         {
             get
             {
-                return textView.TextSnapshot.GetLineNumberFromPosition(
-                           textView.Caret.Position.BufferPosition.Position
-                        );
+                return textView.TextSnapshot.GetLineNumberFromPosition(textView.Caret.Position.BufferPosition.Position);
             }
         }
 
         private void ApplyNumbers()
         {
+            HideVSLineNumbers();
+
+            Children.Clear();
+
             // Get the visual styles
             var lineNumberColorScheme = formatMap.GetProperties("Line Number");
             var backColor = (SolidColorBrush)lineNumberColorScheme[EditorFormatDefinition.BackgroundBrushId];
@@ -73,58 +86,72 @@
             var fontFamily = textView.FormattedLineSource.DefaultTextProperties.Typeface.FontFamily;
             var fontSize = textView.FormattedLineSource.DefaultTextProperties.FontRenderingEmSize;
 
-            Children.Clear();
-
-            var currentCursorLine = CursorLineIndex;
+            // Setup line indexes
+            var currentCursorLineIndex = CursorLineIndex;
             var viewTotalLines = textView.TextViewLines.Count;
-            var viewStartLine = textView.TextViewLines.FirstVisibleLine.Start.GetContainingLine().LineNumber;
-            var viewEndLine = textView.TextViewLines.LastVisibleLine.End.GetContainingLine().LineNumber;
             var totalLineCount = textView.TextSnapshot.LineCount;
             var numberCharactersLineCount = (totalLineCount == 0) ? 1 : (int)Math.Log10(totalLineCount) + 1 + 1;
 
-            this.Width = CalculateWidth(string.Format(CultureInfo.CurrentCulture, "{0:X" + numberCharactersLineCount + "}", totalLineCount), fontFamily, fontSize);
+            // Toggle visibility
+            var isLineNumberOn = (bool)textView.Options.GetOptionValue("TextViewHost/LineNumberMargin");
+            this.Visibility = isLineNumberOn ? Visibility.Visible : Visibility.Hidden;
+            var formattedWidth = CalculateWidth(string.Format(CultureInfo.CurrentCulture, "{0:X" + numberCharactersLineCount + "}", totalLineCount), fontFamily, fontSize);
+            this.Width = isLineNumberOn ? formattedWidth : 0.0;
             this.Background = backColor;
 
-            var previousLineNumber = -1;
+            // Bail when line numbers are off
+            if (!isLineNumberOn) return;
+
+            var previousLineNumberIndex = -1;
             for (var i = 0; i < viewTotalLines; i++)
             {
                 var width = numberCharactersLineCount;
-                var currentLineNumber = textView.TextSnapshot.GetLineNumberFromPosition(textView.TextViewLines[i].Start);
+                var currentLineNumberIndex = textView.TextSnapshot.GetLineNumberFromPosition(textView.TextViewLines[i].Start);
 
-                if (previousLineNumber == currentLineNumber) continue;
-                previousLineNumber = currentLineNumber;
-
-                int displayNumber;
-                if (currentLineNumber == currentCursorLine)
+                int? displayNumber;
+                if (previousLineNumberIndex == currentLineNumberIndex)
                 {
-                    displayNumber = currentCursorLine + 1;
+                    displayNumber = null;
+                }
+                else if (currentLineNumberIndex == currentCursorLineIndex)
+                {
+                    displayNumber = currentCursorLineIndex + 1;
                     width = numberCharactersLineCount * -1;
                 }
-                else if (currentCursorLine >= viewStartLine && currentCursorLine <= viewEndLine)
-                    displayNumber = Math.Abs(currentLineNumber - currentCursorLine);
                 else
-                    displayNumber = Math.Abs(currentLineNumber - viewStartLine - currentCursorLine);
+                    displayNumber = Math.Abs(currentLineNumberIndex - currentCursorLineIndex);
 
                 var lineNumber = ConstructLineNumber(displayNumber, width, fontFamily, fontSize, foreColor);
+                previousLineNumberIndex = currentLineNumberIndex;
+                
                 var top = textView.TextViewLines[i].TextTop - textView.ViewportTop;
                 SetTop(lineNumber, top);
                 Children.Add(lineNumber);
             }
         }
 
-        private static Label ConstructLineNumber(int displayNumber, int width, FontFamily fontFamily, double fontSize, Brush foreColor)
+        private void HideVSLineNumbers()
+        {
+            IWpfTextViewMargin lineNumberMargin = containerMargin.GetTextViewMargin(PredefinedMarginNames.LineNumber) as IWpfTextViewMargin;
+            lineNumberMargin.VisualElement.Visibility = System.Windows.Visibility.Hidden;
+            lineNumberMargin.VisualElement.Width = 0.0;
+            lineNumberMargin.VisualElement.MinWidth = 0.0;
+        }
+
+        private static Label ConstructLineNumber(int? displayNumber, int width, FontFamily fontFamily, double fontSize, Brush foreColor)
         {
             var label = new Label
             {
                 FontFamily = fontFamily,
                 FontSize = fontSize,
                 Foreground = foreColor,
-                Content = string.Format(CultureInfo.CurrentCulture, "{0," + width + "}", displayNumber)
+                Content = string.Format(CultureInfo.CurrentCulture, "{0," + width + "}", displayNumber),
+                Padding = new Thickness(0, 0, 0, 0)
             };
             return label;
         }
 
-        private static double CalculateWidth(string displayNumber, FontFamily fontFamily, double fontSize)
+        private double CalculateWidth(string displayNumber, FontFamily fontFamily, double fontSize)
         {
             var formattedText = new FormattedText(
                 displayNumber,
@@ -136,6 +163,7 @@
 
             return formattedText.Width;
         }
+
         /// <summary>
         /// The <see cref="System.Windows.FrameworkElement"/> that implements the visual representation
         /// of the margin.

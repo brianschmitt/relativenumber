@@ -11,8 +11,8 @@
     /// </summary>
     [Export(typeof(IWpfTextViewMarginProvider))]
     [Name(RelativeNumber.MarginName)]
-    [Order(Before = PredefinedMarginNames.LineNumber)]
-    [MarginContainer(PredefinedMarginNames.LeftSelection)]
+    [Order(Before = PredefinedMarginNames.LeftSelection)]
+    [MarginContainer(PredefinedMarginNames.Left)]
     [ContentType("text")]
     [TextViewRole(PredefinedTextViewRoles.Interactive)]
     internal sealed class MarginFactory : IWpfTextViewMarginProvider
@@ -22,7 +22,11 @@
 
         public IWpfTextViewMargin CreateMargin(IWpfTextViewHost textViewHost, IWpfTextViewMargin containerMargin)
         {
-            return new RelativeNumber(textViewHost.TextView, FormatMapService.GetEditorFormatMap(textViewHost.TextView));
+            var isLineNumbersOn = (bool)textViewHost.TextView.Options.GetOptionValue("TextViewHost/LineNumberMargin");
+
+            if (!isLineNumbersOn) return null;
+
+            return new RelativeNumber(textViewHost.TextView, FormatMapService.GetEditorFormatMap(textViewHost.TextView), containerMargin);
         }
     }
 }
