@@ -32,10 +32,11 @@
             TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);
 
             textView.Caret.PositionChanged += OnCaretPositionChanged;
-            textView.LayoutChanged += OnLayoutChanged;
             textView.Options.OptionChanged += OnOptionChanged;
+            textView.LayoutChanged += OnLayoutChanged;
             textView.ViewportHeightChanged += (sender, args) => ApplyNumbers();
             formatMap.FormatMappingChanged += (sender, args) => ApplyNumbers();
+            textView.ViewportWidthChanged += (sender, args) => ApplyNumbers();
         }
 
         void OnOptionChanged(object sender, EditorOptionChangedEventArgs e)
@@ -76,7 +77,6 @@
         private void ApplyNumbers()
         {
             HideVSLineNumbers();
-
             Children.Clear();
 
             // Get the visual styles
@@ -133,9 +133,12 @@
         private void HideVSLineNumbers()
         {
             IWpfTextViewMargin lineNumberMargin = containerMargin.GetTextViewMargin(PredefinedMarginNames.LineNumber) as IWpfTextViewMargin;
+            if (lineNumberMargin == null) return;
             lineNumberMargin.VisualElement.Visibility = System.Windows.Visibility.Hidden;
             lineNumberMargin.VisualElement.Width = 0.0;
             lineNumberMargin.VisualElement.MinWidth = 0.0;
+            lineNumberMargin.VisualElement.MaxWidth = 0.0;
+            lineNumberMargin.VisualElement.UpdateLayout();
         }
 
         private static Label ConstructLineNumber(int? displayNumber, int width, FontFamily fontFamily, double fontSize, Brush foreColor)

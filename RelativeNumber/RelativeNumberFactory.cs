@@ -22,10 +22,6 @@
 
         public IWpfTextViewMargin CreateMargin(IWpfTextViewHost textViewHost, IWpfTextViewMargin containerMargin)
         {
-            var isLineNumbersOn = (bool)textViewHost.TextView.Options.GetOptionValue("TextViewHost/LineNumberMargin");
-
-            if (!isLineNumbersOn) return null;
-
             return new RelativeNumber(textViewHost.TextView, FormatMapService.GetEditorFormatMap(textViewHost.TextView), containerMargin);
         }
     }
