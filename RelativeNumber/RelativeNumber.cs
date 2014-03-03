@@ -36,13 +36,21 @@
             textView.LayoutChanged += OnLayoutChanged;
             textView.ViewportHeightChanged += (sender, args) => ApplyNumbers();
             formatMap.FormatMappingChanged += (sender, args) => ApplyNumbers();
-            textView.ViewportWidthChanged += (sender, args) => ApplyNumbers();
+            textView.ViewportWidthChanged += OnViewportWidthChanged;
+            HideVSLineNumbers();
+        }
+
+        private void OnViewportWidthChanged(object sender, EventArgs e)
+        {
+            HideVSLineNumbers();
+            ApplyNumbers();
         }
 
         void OnOptionChanged(object sender, EditorOptionChangedEventArgs e)
         {
-            if (e.OptionId == "TextViewHost/LineNumberMargin")
+            if (e.OptionId == DefaultTextViewHostOptions.LineNumberMarginName)
             {
+                HideVSLineNumbers();
                 ApplyNumbers();
             }
         }
@@ -75,8 +83,7 @@
         }
 
         private void ApplyNumbers()
-        {
-            HideVSLineNumbers();
+        {        
             Children.Clear();
 
             // Get the visual styles
@@ -93,9 +100,9 @@
             var numberCharactersLineCount = (totalLineCount == 0) ? 1 : (int)Math.Log10(totalLineCount) + 1 + 1;
 
             // Toggle visibility
-            var isLineNumberOn = (bool)textView.Options.GetOptionValue("TextViewHost/LineNumberMargin");
+            var isLineNumberOn = (bool)textView.Options.GetOptionValue(DefaultTextViewHostOptions.LineNumberMarginName);
             this.Visibility = isLineNumberOn ? Visibility.Visible : Visibility.Hidden;
-            var formattedWidth = CalculateWidth(string.Format(CultureInfo.CurrentCulture, "{0:X" + numberCharactersLineCount + "}", totalLineCount), fontFamily, fontSize);
+            var formattedWidth = CalculateWidth(FormatNumber(numberCharactersLineCount, totalLineCount), fontFamily, fontSize);
             this.Width = isLineNumberOn ? formattedWidth : 0.0;
             this.Background = backColor;
 
@@ -141,6 +148,11 @@
             lineNumberMargin.VisualElement.UpdateLayout();
         }
 
+        private static string FormatNumber(int width, int? lineNumber)
+        {
+            return string.Format(CultureInfo.CurrentCulture, "{0," + width + "}", lineNumber);
+        }
+
         private static Label ConstructLineNumber(int? displayNumber, int width, FontFamily fontFamily, double fontSize, Brush foreColor)
         {
             var label = new Label
@@ -148,7 +160,7 @@
                 FontFamily = fontFamily,
                 FontSize = fontSize,
                 Foreground = foreColor,
-                Content = string.Format(CultureInfo.CurrentCulture, "{0," + width + "}", displayNumber),
+                Content = FormatNumber(width, displayNumber),
                 Padding = new Thickness(0, 0, 0, 0)
             };
             return label;
