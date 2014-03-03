@@ -37,6 +37,7 @@
             textView.ViewportHeightChanged += (sender, args) => ApplyNumbers();
             formatMap.FormatMappingChanged += (sender, args) => ApplyNumbers();
             textView.ViewportWidthChanged += OnViewportWidthChanged;
+
             HideVSLineNumbers();
         }
 
@@ -46,7 +47,7 @@
             ApplyNumbers();
         }
 
-        void OnOptionChanged(object sender, EditorOptionChangedEventArgs e)
+        private void OnOptionChanged(object sender, EditorOptionChangedEventArgs e)
         {
             if (e.OptionId == DefaultTextViewHostOptions.LineNumberMarginName)
             {
@@ -83,7 +84,14 @@
         }
 
         private void ApplyNumbers()
-        {        
+        {
+            // Toggle visibility
+            var isLineNumberOn = (bool)textView.Options.GetOptionValue(DefaultTextViewHostOptions.LineNumberMarginName);
+            this.Visibility = isLineNumberOn ? Visibility.Visible : Visibility.Hidden;
+            
+            // Bail when line numbers are off
+            if (!isLineNumberOn) return;
+
             Children.Clear();
 
             // Get the visual styles
@@ -99,15 +107,9 @@
             var totalLineCount = textView.TextSnapshot.LineCount;
             var numberCharactersLineCount = (totalLineCount == 0) ? 1 : (int)Math.Log10(totalLineCount) + 1 + 1;
 
-            // Toggle visibility
-            var isLineNumberOn = (bool)textView.Options.GetOptionValue(DefaultTextViewHostOptions.LineNumberMarginName);
-            this.Visibility = isLineNumberOn ? Visibility.Visible : Visibility.Hidden;
             var formattedWidth = CalculateWidth(FormatNumber(numberCharactersLineCount, totalLineCount), fontFamily, fontSize);
             this.Width = isLineNumberOn ? formattedWidth : 0.0;
             this.Background = backColor;
-
-            // Bail when line numbers are off
-            if (!isLineNumberOn) return;
 
             var previousLineNumberIndex = -1;
             for (var i = 0; i < viewTotalLines; i++)
@@ -130,7 +132,7 @@
 
                 var lineNumber = ConstructLineNumber(displayNumber, width, fontFamily, fontSize, foreColor);
                 previousLineNumberIndex = currentLineNumberIndex;
-                
+
                 var top = textView.TextViewLines[i].TextTop - textView.ViewportTop;
                 SetTop(lineNumber, top);
                 Children.Add(lineNumber);
@@ -179,14 +181,8 @@
             return formattedText.Width;
         }
 
-        /// <summary>
-        /// The <see cref="System.Windows.FrameworkElement"/> that implements the visual representation
-        /// of the margin.
-        /// </summary>
         public FrameworkElement VisualElement
         {
-            // Since this margin implements Canvas, this is the object which renders
-            // the margin.
             get
             {
                 ThrowIfDisposed();
@@ -196,18 +192,15 @@
 
         public double MarginSize
         {
-            // Since this is a horizontal margin, its width will be bound to the width of the text view.
-            // Therefore, its size is its height.
             get
             {
                 ThrowIfDisposed();
-                return this.ActualHeight;
+                return this.MarginSize;
             }
         }
 
         public bool Enabled
         {
-            // The margin should always be enabled
             get
             {
                 ThrowIfDisposed();
@@ -215,11 +208,6 @@
             }
         }
 
-        /// <summary>
-        /// Returns an instance of the margin if this is the margin that has been requested.
-        /// </summary>
-        /// <param name="marginName">The name of the margin requested</param>
-        /// <returns>An instance of RelativeNumber or null</returns>
         public ITextViewMargin GetTextViewMargin(string marginName)
         {
             return (marginName == MarginName) ? this : null;
