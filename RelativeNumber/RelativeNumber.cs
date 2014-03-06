@@ -88,7 +88,7 @@
             // Toggle visibility
             var isLineNumberOn = (bool)textView.Options.GetOptionValue(DefaultTextViewHostOptions.LineNumberMarginName);
             this.Visibility = isLineNumberOn ? Visibility.Visible : Visibility.Hidden;
-            
+
             // Bail when line numbers are off
             if (!isLineNumberOn) return;
 
@@ -99,7 +99,7 @@
             var backColor = (SolidColorBrush)lineNumberColorScheme[EditorFormatDefinition.BackgroundBrushId];
             var foreColor = (SolidColorBrush)lineNumberColorScheme[EditorFormatDefinition.ForegroundBrushId];
             var fontFamily = textView.FormattedLineSource.DefaultTextProperties.Typeface.FontFamily;
-            var fontSize = textView.FormattedLineSource.DefaultTextProperties.FontRenderingEmSize;
+            var fontSize = textView.FormattedLineSource.DefaultTextProperties.FontRenderingEmSize * (textView.ZoomLevel / 100);
 
             // Setup line indexes
             var currentCursorLineIndex = CursorLineIndex;
@@ -133,7 +133,7 @@
                 var lineNumber = ConstructLineNumber(displayNumber, width, fontFamily, fontSize, foreColor);
                 previousLineNumberIndex = currentLineNumberIndex;
 
-                var top = textView.TextViewLines[i].TextTop - textView.ViewportTop;
+                var top = (textView.TextViewLines[i].TextTop - textView.ViewportTop) * (textView.ZoomLevel / 100);
                 SetTop(lineNumber, top);
                 Children.Add(lineNumber);
             }
