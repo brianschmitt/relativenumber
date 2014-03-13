@@ -5,10 +5,6 @@
     using Microsoft.VisualStudio.Text.Editor;
     using Microsoft.VisualStudio.Utilities;
 
-    /// <summary>
-    /// Export a <see cref="IWpfTextViewMarginProvider"/>, which returns an instance of the margin for the editor
-    /// to use.
-    /// </summary>
     [Export(typeof(IWpfTextViewMarginProvider))]
     [Name(RelativeNumber.MarginName)]
     [Order(Before = PredefinedMarginNames.LeftSelection)]
