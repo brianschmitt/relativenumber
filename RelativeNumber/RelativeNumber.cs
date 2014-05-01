@@ -85,7 +85,7 @@
         {
             get
             {
-                return textView.TextSnapshot.GetLineNumberFromPosition(textView.Caret.Position.BufferPosition.Position);
+                return textView.Caret.ContainingTextViewLine.Start.GetContainingLine().LineNumber + 1;
             }
         }
 
@@ -136,11 +136,14 @@
             }
             else
             {
+                viewPortFirstLine = viewPortFirstLine == 0 ? 1 : viewPortFirstLine;
                 var cursorViewPortLineIndex = currentCursorLineNumber - viewPortFirstLine;
-                var hiddenLines = CountHiddenLines(textView.TextViewLines.FirstVisibleLine.Start, textView.Caret.Position.BufferPosition);
+                var hiddenLines = CountHiddenLines(textView.TextViewLines.FirstVisibleLine.Start, textView.Caret.ContainingTextViewLine.Start);
                 offset = currentCursorLineNumber - cursorViewPortLineIndex + hiddenLines - 1;
+
             }
 
+            //            if (offset < 0) return;
             offset = offset < 0 ? 0 : offset;
 
             var previousLineNumber = -1;
@@ -157,16 +160,20 @@
                     // line wrapped
                     displayNumber = null;
                 }
-                else if (currentLoopLineNumber == currentCursorLineNumber)
+                else if (currentLoopLineNumber + 1 == currentCursorLineNumber)
                 {
-                    displayNumber = lineNumbers[offset + counter];
+                    var indx = offset + counter;
+                    var safeIndex = indx > lineNumbers.Count ? 0 : indx;
+                    displayNumber = lineNumbers[safeIndex];
                     width = numberCharactersLineCount * -1;
                     counter += 1;
                 }
                 else
                 {
                     // cursor line - display real line number
-                    displayNumber = lineNumbers[offset + counter];
+                    var indx = offset + counter;
+                    var safeIndex = indx > lineNumbers.Count ? 0 : indx;
+                    displayNumber = lineNumbers[safeIndex];
                     counter += 1;
                 }
 
@@ -182,12 +189,11 @@
         private IList<int> BuildLineNumbers(int currentLineNumber, int maxLineNumber)
         {
             var list = new List<int>();
-            var beforCursor = Enumerable.Range(1, currentLineNumber).Reverse();
-            var maxNumber = currentLineNumber > maxLineNumber ? maxLineNumber : maxLineNumber - currentLineNumber;
-            var afterCursor = Enumerable.Range(1, maxNumber);
+            var beforCursor = Enumerable.Range(1, currentLineNumber - 1).Reverse();
+            var afterCursor = Enumerable.Range(1, maxLineNumber);
 
             list.AddRange(beforCursor);
-            list.Add(currentLineNumber + 1);
+            list.Add(currentLineNumber);
             list.AddRange(afterCursor);
 
             return list;
@@ -195,7 +201,8 @@
 
         private int CountHiddenLines(int start, int end)
         {
-            var hiddenLines = outliningManager.GetCollapsedRegions(new SnapshotSpan(textView.TextSnapshot, start, end - start));
+            if (start > end) return 0;
+            var hiddenLines = outliningManager.GetCollapsedRegions(new SnapshotSpan(textView.TextSnapshot, start, end - start), true);
             var hiddenLineCount = 0;
             foreach (var hiddenLine in hiddenLines)
             {
@@ -212,7 +219,7 @@
 
         private void HideVSLineNumbers()
         {
-            IWpfTextViewMargin lineNumberMargin = containerMargin.GetTextViewMargin(PredefinedMarginNames.LineNumber) as IWpfTextViewMargin;
+            var lineNumberMargin = containerMargin.GetTextViewMargin(PredefinedMarginNames.LineNumber) as IWpfTextViewMargin;
             if (lineNumberMargin == null) return;
             lineNumberMargin.VisualElement.Visibility = Visibility.Hidden;
             lineNumberMargin.VisualElement.Width = 0.0;
