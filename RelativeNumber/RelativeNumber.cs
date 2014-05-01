@@ -141,6 +141,8 @@
                 offset = currentCursorLineNumber - cursorViewPortLineIndex + hiddenLines - 1;
             }
 
+            offset = offset < 0 ? 0 : offset;
+
             var previousLineNumber = -1;
             var counter = 0;
             for (var i = 0; i < viewTotalLines; i++)
