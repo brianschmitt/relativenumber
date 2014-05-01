@@ -140,10 +140,8 @@
                 var cursorViewPortLineIndex = currentCursorLineNumber - viewPortFirstLine;
                 var hiddenLines = CountHiddenLines(textView.TextViewLines.FirstVisibleLine.Start, textView.Caret.ContainingTextViewLine.Start);
                 offset = currentCursorLineNumber - cursorViewPortLineIndex + hiddenLines - 1;
-
             }
 
-            //            if (offset < 0) return;
             offset = offset < 0 ? 0 : offset;
 
             var previousLineNumber = -1;
