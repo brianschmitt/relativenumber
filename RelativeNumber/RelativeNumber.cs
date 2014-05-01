@@ -2,11 +2,15 @@
 {
     using System;
     using System.Globalization;
+    using System.Linq;
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Media;
     using Microsoft.VisualStudio.Text.Editor;
     using Microsoft.VisualStudio.Text.Classification;
+    using Microsoft.VisualStudio.Text;
+    using System.Collections.Generic;
+    using Microsoft.VisualStudio.Text.Outlining;
 
     /// <summary>
     /// A class detailing the margin's visual definition including both size and content.
@@ -17,15 +21,17 @@
         private IWpfTextView textView;
         private IEditorFormatMap formatMap;
         private IWpfTextViewMargin containerMargin;
+        private IOutliningManager outliningManager;
         private bool isDisposed;
 
         private int lastCursorLine = -1;
 
-        public RelativeNumber(IWpfTextView textView, IEditorFormatMap formatMap, IWpfTextViewMargin containerMargin)
+        public RelativeNumber(IWpfTextView textView, IEditorFormatMap formatMap, IWpfTextViewMargin containerMargin, IOutliningManager outliningManager)
         {
             this.textView = textView;
             this.formatMap = formatMap;
             this.containerMargin = containerMargin;
+            this.outliningManager = outliningManager;
 
             this.ClipToBounds = true;
             TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
@@ -58,7 +64,7 @@
 
         private void OnCaretPositionChanged(object sender, CaretPositionChangedEventArgs e)
         {
-            var currentCursorLine = CursorLineIndex;
+            var currentCursorLine = CursorLineNumber;
 
             if (lastCursorLine != currentCursorLine)
             {
@@ -75,7 +81,7 @@
             }
         }
 
-        private int CursorLineIndex
+        private int CursorLineNumber
         {
             get
             {
@@ -89,11 +95,6 @@
             var isLineNumberOn = (bool)textView.Options.GetOptionValue(DefaultTextViewHostOptions.LineNumberMarginName);
             this.Visibility = isLineNumberOn ? Visibility.Visible : Visibility.Hidden;
 
-            // Bail when line numbers are off
-            if (!isLineNumberOn) return;
-
-            Children.Clear();
-
             // Get the visual styles
             var lineNumberColorScheme = formatMap.GetProperties("Line Number");
             var backColor = (SolidColorBrush)lineNumberColorScheme[EditorFormatDefinition.BackgroundBrushId];
@@ -102,7 +103,7 @@
             var fontSize = textView.FormattedLineSource.DefaultTextProperties.FontRenderingEmSize * (textView.ZoomLevel / 100);
 
             // Setup line indexes
-            var currentCursorLineIndex = CursorLineIndex;
+            var currentCursorLineNumber = CursorLineNumber;
             var viewTotalLines = textView.TextViewLines.Count;
             var totalLineCount = textView.TextSnapshot.LineCount;
             var numberCharactersLineCount = (totalLineCount == 0) ? 1 : (int)Math.Log10(totalLineCount) + 1 + 1;
@@ -111,27 +112,64 @@
             this.Width = isLineNumberOn ? formattedWidth : 0.0;
             this.Background = backColor;
 
-            var previousLineNumberIndex = -1;
+            // Bail when line numbers are off
+            if (!isLineNumberOn) return;
+
+            Children.Clear();
+
+            var lineNumbers = BuildLineNumbers(currentCursorLineNumber, textView.VisualSnapshot.LineCount);
+            var viewPortFirstLine = textView.TextSnapshot.GetLineNumberFromPosition(textView.TextViewLines.FirstVisibleLine.Start);
+            var viewPortLastLine = textView.TextSnapshot.GetLineNumberFromPosition(textView.TextViewLines.LastVisibleLine.End);
+            var cursorAbove = currentCursorLineNumber < viewPortFirstLine;
+            var cursorBelow = currentCursorLineNumber > viewPortLastLine;
+
+            int offset;
+            if (cursorAbove)
+            {
+                var hiddenLines = CountHiddenLines(textView.Caret.Position.BufferPosition, textView.TextViewLines.FirstVisibleLine.Start);
+                offset = viewPortFirstLine - hiddenLines - 1;
+            }
+            else if (cursorBelow)
+            {
+                var hiddenLines = CountHiddenLines(textView.TextViewLines.FirstVisibleLine.Start, textView.Caret.Position.BufferPosition);
+                offset = viewPortFirstLine + hiddenLines - 1;
+            }
+            else
+            {
+                var cursorViewPortLineIndex = currentCursorLineNumber - viewPortFirstLine;
+                var hiddenLines = CountHiddenLines(textView.TextViewLines.FirstVisibleLine.Start, textView.Caret.Position.BufferPosition);
+                offset = currentCursorLineNumber - cursorViewPortLineIndex + hiddenLines - 1;
+            }
+
+            var previousLineNumber = -1;
+            var counter = 0;
             for (var i = 0; i < viewTotalLines; i++)
             {
                 var width = numberCharactersLineCount;
-                var currentLineNumberIndex = textView.TextSnapshot.GetLineNumberFromPosition(textView.TextViewLines[i].Start);
+                var currentLoopLine = textView.TextSnapshot.GetLineFromPosition(textView.TextViewLines[i].Start);
+                var currentLoopLineNumber = currentLoopLine.LineNumber;
 
                 int? displayNumber;
-                if (previousLineNumberIndex == currentLineNumberIndex)
+                if (previousLineNumber == currentLoopLineNumber)
                 {
+                    // line wrapped
                     displayNumber = null;
                 }
-                else if (currentLineNumberIndex == currentCursorLineIndex)
+                else if (currentLoopLineNumber == currentCursorLineNumber)
                 {
-                    displayNumber = currentCursorLineIndex + 1;
+                    displayNumber = lineNumbers[offset + counter];
                     width = numberCharactersLineCount * -1;
+                    counter += 1;
                 }
                 else
-                    displayNumber = Math.Abs(currentLineNumberIndex - currentCursorLineIndex);
+                {
+                    // cursor line - display real line number
+                    displayNumber = lineNumbers[offset + counter];
+                    counter += 1;
+                }
 
                 var lineNumber = ConstructLineNumber(displayNumber, width, fontFamily, fontSize, foreColor);
-                previousLineNumberIndex = currentLineNumberIndex;
+                previousLineNumber = currentLoopLineNumber;
 
                 var top = (textView.TextViewLines[i].TextTop - textView.ViewportTop) * (textView.ZoomLevel / 100);
                 SetTop(lineNumber, top);
@@ -139,11 +177,42 @@
             }
         }
 
+        private IList<int> BuildLineNumbers(int currentLineNumber, int maxLineNumber)
+        {
+            var list = new List<int>();
+            var beforCursor = Enumerable.Range(1, currentLineNumber).Reverse();
+            var maxNumber = currentLineNumber > maxLineNumber ? maxLineNumber : maxLineNumber - currentLineNumber;
+            var afterCursor = Enumerable.Range(1, maxNumber);
+
+            list.AddRange(beforCursor);
+            list.Add(currentLineNumber + 1);
+            list.AddRange(afterCursor);
+
+            return list;
+        }
+
+        private int CountHiddenLines(int start, int end)
+        {
+            var hiddenLines = outliningManager.GetCollapsedRegions(new SnapshotSpan(textView.TextSnapshot, start, end - start));
+            var hiddenLineCount = 0;
+            foreach (var hiddenLine in hiddenLines)
+            {
+                var span = hiddenLine.Extent.GetSpan(textView.TextBuffer.CurrentSnapshot);
+                if (span.Start.Position > 1)
+                {
+                    var strtLine = textView.TextSnapshot.GetLineNumberFromPosition(span.Start);
+                    var endLine = textView.TextSnapshot.GetLineNumberFromPosition(span.End);
+                    hiddenLineCount = hiddenLineCount + (endLine - strtLine);
+                }
+            }
+            return hiddenLineCount;
+        }
+
         private void HideVSLineNumbers()
         {
             IWpfTextViewMargin lineNumberMargin = containerMargin.GetTextViewMargin(PredefinedMarginNames.LineNumber) as IWpfTextViewMargin;
             if (lineNumberMargin == null) return;
-            lineNumberMargin.VisualElement.Visibility = System.Windows.Visibility.Hidden;
+            lineNumberMargin.VisualElement.Visibility = Visibility.Hidden;
             lineNumberMargin.VisualElement.Width = 0.0;
             lineNumberMargin.VisualElement.MinWidth = 0.0;
             lineNumberMargin.VisualElement.MaxWidth = 0.0;
