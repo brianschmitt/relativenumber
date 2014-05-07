@@ -161,8 +161,7 @@
                 else if (currentLoopLineNumber + 1 == currentCursorLineNumber)
                 {
                     var indx = offset + counter;
-                    var safeIndex = indx > lineNumbers.Count ? 0 : indx;
-                    displayNumber = lineNumbers[safeIndex];
+                    displayNumber = lineNumbers[indx];
                     width = numberCharactersLineCount * -1;
                     counter += 1;
                 }
@@ -170,8 +169,7 @@
                 {
                     // cursor line - display real line number
                     var indx = offset + counter;
-                    var safeIndex = indx > lineNumbers.Count ? 0 : indx;
-                    displayNumber = lineNumbers[safeIndex];
+                    displayNumber = lineNumbers[indx];
                     counter += 1;
                 }
 
@@ -205,12 +203,9 @@
             foreach (var hiddenLine in hiddenLines)
             {
                 var span = hiddenLine.Extent.GetSpan(textView.TextBuffer.CurrentSnapshot);
-                if (span.Start.Position > 1)
-                {
-                    var strtLine = textView.TextSnapshot.GetLineNumberFromPosition(span.Start);
-                    var endLine = textView.TextSnapshot.GetLineNumberFromPosition(span.End);
-                    hiddenLineCount = hiddenLineCount + (endLine - strtLine);
-                }
+                var strtLine = textView.TextSnapshot.GetLineNumberFromPosition(span.Start);
+                var endLine = textView.TextSnapshot.GetLineNumberFromPosition(span.End);
+                hiddenLineCount = hiddenLineCount + (endLine - strtLine);
             }
             return hiddenLineCount;
         }
