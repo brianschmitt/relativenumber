@@ -23,6 +23,7 @@
         private IWpfTextViewMargin containerMargin;
         private IOutliningManager outliningManager;
         private bool isDisposed;
+        private bool HasFocus = false;
 
         private int lastCursorLine = -1;
 
@@ -43,7 +44,8 @@
             textView.ViewportHeightChanged += (sender, args) => ApplyNumbers();
             formatMap.FormatMappingChanged += (sender, args) => ApplyNumbers();
             textView.ViewportWidthChanged += OnViewportWidthChanged;
-
+            textView.GotAggregateFocus += GotFocusHandler;
+            textView.LostAggregateFocus += LostFocusHandler;
             HideVSLineNumbers();
         }
 
@@ -79,6 +81,18 @@
             {
                 ApplyNumbers();
             }
+        }
+
+        private void GotFocusHandler(object sender, EventArgs e)
+        {
+            HasFocus = true;
+            ApplyNumbers();
+        }
+
+        private void LostFocusHandler(object sender, EventArgs e)
+        {
+            HasFocus = false;
+            ApplyNumbers();
         }
 
         private int CursorLineNumber
@@ -158,7 +172,7 @@
                     // line wrapped
                     displayNumber = null;
                 }
-                else if (currentLoopLineNumber + 1 == currentCursorLineNumber)
+                else if (currentLoopLineNumber + 1 == currentCursorLineNumber || !HasFocus)
                 {
                     var indx = offset + counter;
                     displayNumber = lineNumbers[indx];
@@ -185,12 +199,19 @@
         private IList<int> BuildLineNumbers(int currentLineNumber, int maxLineNumber)
         {
             var list = new List<int>();
-            var beforCursor = Enumerable.Range(1, currentLineNumber - 1).Reverse();
-            var afterCursor = Enumerable.Range(1, maxLineNumber);
+            if (HasFocus)
+            {
+                var beforCursor = Enumerable.Range(1, currentLineNumber - 1).Reverse();
+                var afterCursor = Enumerable.Range(1, maxLineNumber);
 
-            list.AddRange(beforCursor);
-            list.Add(currentLineNumber);
-            list.AddRange(afterCursor);
+                list.AddRange(beforCursor);
+                list.Add(currentLineNumber);
+                list.AddRange(afterCursor);
+            }
+            else
+            {
+                list.AddRange(Enumerable.Range(1, maxLineNumber));
+            }
 
             return list;
         }
