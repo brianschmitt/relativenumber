@@ -176,7 +176,7 @@
                 {
                     var indx = offset + counter;
                     displayNumber = lineNumbers[indx];
-                    width = numberCharactersLineCount * -1;
+                    width = HasFocus ? numberCharactersLineCount * -1 : numberCharactersLineCount;
                     counter += 1;
                 }
                 else
