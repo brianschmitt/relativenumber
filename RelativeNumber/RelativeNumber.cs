@@ -175,7 +175,7 @@
                 else if (currentLoopLineNumber + 1 == currentCursorLineNumber || !HasFocus)
                 {
                     var indx = offset + counter;
-                    displayNumber = lineNumbers[indx];
+                    displayNumber = lineNumbers.Count >= indx ? lineNumbers[indx] : lineNumbers[lineNumbers.Count];
                     width = HasFocus ? numberCharactersLineCount * -1 : numberCharactersLineCount;
                     counter += 1;
                 }
