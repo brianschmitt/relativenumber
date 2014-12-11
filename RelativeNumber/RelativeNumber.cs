@@ -219,6 +219,10 @@
         private int CountHiddenLines(int start, int end)
         {
             if (start > end) return 0;
+            
+            // outliningManager will be null when outlining is not supported, such as in a git diff view
+            if (outliningManager == null) return 0;
+
             var hiddenLines = outliningManager.GetCollapsedRegions(new SnapshotSpan(textView.TextSnapshot, start, end - start), true);
             var hiddenLineCount = 0;
             foreach (var hiddenLine in hiddenLines)
