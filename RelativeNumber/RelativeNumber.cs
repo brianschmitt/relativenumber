@@ -133,7 +133,7 @@
 
             var lineNumbers = BuildLineNumbers(currentCursorLineNumber, textView.VisualSnapshot.LineCount);
             var viewPortFirstLine = textView.TextSnapshot.GetLineNumberFromPosition(textView.TextViewLines.FirstVisibleLine.Start);
-            var viewPortLastLine = textView.TextSnapshot.GetLineNumberFromPosition(textView.TextViewLines.LastVisibleLine.End);
+            var viewPortLastLine = textView.TextSnapshot.GetLineNumberFromPosition(textView.TextViewLines.LastVisibleLine.End) + 1;
             var cursorAbove = currentCursorLineNumber < viewPortFirstLine;
             var cursorBelow = currentCursorLineNumber > viewPortLastLine;
 
@@ -175,7 +175,7 @@
                 else if (currentLoopLineNumber + 1 == currentCursorLineNumber || !HasFocus)
                 {
                     var indx = offset + counter;
-                    displayNumber = lineNumbers.Count >= indx ? lineNumbers[indx] : lineNumbers[lineNumbers.Count];
+                    displayNumber = lineNumbers.Count - 1 >= indx ? lineNumbers[indx] : lineNumbers[i];
                     width = HasFocus ? numberCharactersLineCount * -1 : numberCharactersLineCount;
                     counter += 1;
                 }
@@ -219,7 +219,7 @@
         private int CountHiddenLines(int start, int end)
         {
             if (start > end) return 0;
-            
+
             // outliningManager will be null when outlining is not supported, such as in a git diff view
             if (outliningManager == null) return 0;
 
