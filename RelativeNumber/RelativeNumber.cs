@@ -116,6 +116,10 @@
             var fontFamily = textView.FormattedLineSource.DefaultTextProperties.Typeface.FontFamily;
             var fontSize = textView.FormattedLineSource.DefaultTextProperties.FontRenderingEmSize * (textView.ZoomLevel / 100);
 
+            var currentLineDefinition = formatMap.GetProperties(CurrentLineFormatDefinition.Name);
+            var currentLineBackColor = currentLineDefinition.GetValue<SolidColorBrush>(EditorFormatDefinition.BackgroundBrushId, defaultValue: backColor);
+            var currentLineForeColor = currentLineDefinition.GetValue<SolidColorBrush>(EditorFormatDefinition.ForegroundBrushId, defaultValue: foreColor);
+
             // Setup line indexes
             var currentCursorLineNumber = CursorLineNumber;
             var viewTotalLines = textView.TextViewLines.Count;
@@ -162,6 +166,8 @@
             var counter = 0;
             for (var i = 0; i < viewTotalLines; i++)
             {
+                var lineForeColor = foreColor;
+                var lineBackColor = backColor;
                 var width = numberCharactersLineCount;
                 var currentLoopLine = textView.TextSnapshot.GetLineFromPosition(textView.TextViewLines[i].Start);
                 var currentLoopLineNumber = currentLoopLine.LineNumber;
@@ -178,6 +184,12 @@
                     displayNumber = lineNumbers.Count - 1 >= indx ? lineNumbers[indx] : lineNumbers[i];
                     width = HasFocus ? numberCharactersLineCount * -1 : numberCharactersLineCount;
                     counter += 1;
+
+                    if (HasFocus)
+                    {
+                        lineForeColor = currentLineForeColor;
+                        lineBackColor = currentLineBackColor;
+                    }
                 }
                 else
                 {
@@ -187,7 +199,7 @@
                     counter += 1;
                 }
 
-                var lineNumber = ConstructLineNumber(displayNumber, width, fontFamily, fontSize, foreColor);
+                var lineNumber = ConstructLineNumber(displayNumber, width, fontFamily, fontSize, lineForeColor, lineBackColor);
                 previousLineNumber = currentLoopLineNumber;
 
                 var top = (textView.TextViewLines[i].TextTop - textView.ViewportTop) * (textView.ZoomLevel / 100);
@@ -251,13 +263,14 @@
             return string.Format(CultureInfo.CurrentCulture, "{0," + width + "}", lineNumber);
         }
 
-        private static Label ConstructLineNumber(int? displayNumber, int width, FontFamily fontFamily, double fontSize, Brush foreColor)
+        private static Label ConstructLineNumber(int? displayNumber, int width, FontFamily fontFamily, double fontSize, Brush foreColor, Brush backColor)
         {
             var label = new Label
             {
                 FontFamily = fontFamily,
                 FontSize = fontSize,
                 Foreground = foreColor,
+                Background = backColor,
                 Content = FormatNumber(width, displayNumber),
                 Padding = new Thickness(0, 0, 0, 0)
             };
