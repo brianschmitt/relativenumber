@@ -83,6 +83,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CurrentLineFormatDefinition.cs" />
+    <Compile Include="ObjectPool.cs" />
     <Compile Include="RelativeNumber.cs" />
     <Compile Include="RelativeNumberFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

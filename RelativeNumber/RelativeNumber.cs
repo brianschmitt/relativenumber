@@ -26,6 +26,7 @@
         private bool HasFocus = false;
 
         private int lastCursorLine = -1;
+        private ObjectPool<TextBlock> textBlockPool;
 
         public RelativeNumber(IWpfTextView textView, IEditorFormatMap formatMap, IWpfTextViewMargin containerMargin, IOutliningManager outliningManager)
         {
@@ -46,6 +47,7 @@
             textView.ViewportWidthChanged += OnViewportWidthChanged;
             textView.GotAggregateFocus += GotFocusHandler;
             textView.LostAggregateFocus += LostFocusHandler;
+            textBlockPool = new ObjectPool<TextBlock>(() => new TextBlock {Padding = new Thickness(0, 0, 0, 0)});
             HideVSLineNumbers();
         }
 
@@ -263,18 +265,15 @@
             return string.Format(CultureInfo.CurrentCulture, "{0," + width + "}", lineNumber);
         }
 
-        private static Label ConstructLineNumber(int? displayNumber, int width, FontFamily fontFamily, double fontSize, Brush foreColor, Brush backColor)
+        private TextBlock ConstructLineNumber(int? displayNumber, int width, FontFamily fontFamily, double fontSize, Brush foreColor, Brush backColor)
         {
-            var label = new Label
-            {
-                FontFamily = fontFamily,
-                FontSize = fontSize,
-                Foreground = foreColor,
-                Background = backColor,
-                Content = FormatNumber(width, displayNumber),
-                Padding = new Thickness(0, 0, 0, 0)
-            };
-            return label;
+            var text = textBlockPool.GetObject();
+            text.FontFamily = fontFamily;
+            text.FontSize = fontSize;
+            text.Foreground = foreColor;
+            text.Background = backColor;
+            text.Text = FormatNumber(width, displayNumber);
+            return text;
         }
 
         private double CalculateWidth(string displayNumber, FontFamily fontFamily, double fontSize)
