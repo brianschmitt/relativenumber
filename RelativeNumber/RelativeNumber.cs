@@ -135,6 +135,8 @@
             // Bail when line numbers are off
             if (!isLineNumberOn) return;
 
+            foreach (TextBlock textblock in Children)
+               textBlockPool.PutObject(textblock); 
             Children.Clear();
 
             var lineNumbers = BuildLineNumbers(currentCursorLineNumber, textView.VisualSnapshot.LineCount);
