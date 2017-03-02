@@ -8,8 +8,8 @@
 
     [Export(typeof(IWpfTextViewMarginProvider))]
     [Name(RelativeNumber.MarginName)]
-    [Order(Before = PredefinedMarginNames.LeftSelection)]
-    [MarginContainer(PredefinedMarginNames.Left)]
+    [Order(After = PredefinedMarginNames.Left, Before = PredefinedMarginNames.Outlining)]
+    [MarginContainer(PredefinedMarginNames.LeftSelection)]
     [ContentType("text")]
     [TextViewRole(PredefinedTextViewRoles.Interactive)]
     internal sealed class MarginFactory : IWpfTextViewMarginProvider
