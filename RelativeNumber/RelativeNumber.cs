@@ -47,7 +47,7 @@
             textView.ViewportWidthChanged += OnViewportWidthChanged;
             textView.GotAggregateFocus += GotFocusHandler;
             textView.LostAggregateFocus += LostFocusHandler;
-            textBlockPool = new ObjectPool<TextBlock>(() => new TextBlock {Padding = new Thickness(0, 0, 0, 0)});
+            textBlockPool = new ObjectPool<TextBlock>(() => new TextBlock { Padding = new Thickness(0, 0, 0, 0), Margin = new Thickness(0, 0, 0, 0) });
             HideVSLineNumbers();
         }
 
@@ -116,7 +116,7 @@
             var backColor = (SolidColorBrush)lineNumberColorScheme[EditorFormatDefinition.BackgroundBrushId];
             var foreColor = (SolidColorBrush)lineNumberColorScheme[EditorFormatDefinition.ForegroundBrushId];
             var fontFamily = textView.FormattedLineSource.DefaultTextProperties.Typeface.FontFamily;
-            var fontSize = textView.FormattedLineSource.DefaultTextProperties.FontRenderingEmSize * (textView.ZoomLevel / 100);
+            var fontSize = textView.FormattedLineSource.DefaultTextProperties.FontRenderingEmSize;
 
             var currentLineDefinition = formatMap.GetProperties(CurrentLineFormatDefinition.Name);
             var currentLineBackColor = currentLineDefinition.GetValue<SolidColorBrush>(EditorFormatDefinition.BackgroundBrushId, defaultValue: backColor);
@@ -136,7 +136,7 @@
             if (!isLineNumberOn) return;
 
             foreach (TextBlock textblock in Children)
-               textBlockPool.PutObject(textblock); 
+                textBlockPool.PutObject(textblock);
             Children.Clear();
 
             var lineNumbers = BuildLineNumbers(currentCursorLineNumber, textView.VisualSnapshot.LineCount);
@@ -206,7 +206,7 @@
                 var lineNumber = ConstructLineNumber(displayNumber, width, fontFamily, fontSize, lineForeColor, lineBackColor);
                 previousLineNumber = currentLoopLineNumber;
 
-                var top = (textView.TextViewLines[i].TextTop - textView.ViewportTop) * (textView.ZoomLevel / 100);
+                var top = (textView.TextViewLines[i].TextTop - textView.ViewportTop);
                 SetTop(lineNumber, top);
                 Children.Add(lineNumber);
             }
